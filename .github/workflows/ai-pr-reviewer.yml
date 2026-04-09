@@ -32,22 +32,23 @@ jobs:
         id: agent
         run: |
           # CONFIGURATION
-          DATA_STORE_ID="1775696248774"
+          # Ensure this ID is the one from the 'Apps' dashboard, not the 'Data Store' dashboard.
+          APP_ID="1775696248774"
           PROJECT_ID="ai-code-reviewer-492601"
           
-          # We use v1alpha and the :answer endpoint for Data Stores
+          # This URL is the standard endpoint for Search Apps (Engines)
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $(gcloud auth print-access-token)" \
             -H "Content-Type: application/json" \
             "https://googleapis.com" \
             -d "{
-              \"query\": { \"text\": \"Review this Python code diff against our style guide and provide brief feedback: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\" }
+              \"query\": \"Review this Python code diff against our style guide and provide brief feedback: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\"
             }")
           
           echo "DEBUG_LOG: $RESPONSE"
           
-          # Extract the text and save to file
-          echo "$RESPONSE" | jq -r '.answer.answerText // "AI Review: Code looks consistent with standards."' > ai_review.txt
+          # Extract the summary text and save to file
+          echo "$RESPONSE" | jq -r '.reply.summary.summaryText // "AI Review: Code looks consistent with standards."' > ai_review.txt
 
       - name: Post Comment to PR
         uses: mshick/add-pr-comment@v2
