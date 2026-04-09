@@ -32,7 +32,7 @@ jobs:
       - name: Call Vertex AI Agent
         id: agent
         run: |
-          # REPLACE 'YOUR_AGENT_ID' BELOW with the ID from your browser URL
+          # Use your specific ID and Project
           AGENT_ID="1775696248774"
           PROJECT_ID="ai-code-reviewer-492601"
           
@@ -40,13 +40,14 @@ jobs:
           RESPONSE=$(curl -X POST \
             -H "Authorization: Bearer $(gcloud auth print-access-token)" \
             -H "Content-Type: application/json" \
-            https://googleapis.com \
+            "https://googleapis.com" \
             -d "{
               \"query\": \"Review this Python code diff against our style guide and provide brief feedback: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\"
             }")
           
-          # Save the AI response to a file to handle multi-line text safely
+          # Save the AI response to a file
           echo "$RESPONSE" | jq -r '.answer.answerText // "The AI could not generate a review at this time."' > ai_review.txt
+
 
       - name: Post Comment to PR
         uses: mshick/add-pr-comment@v2
