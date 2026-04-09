@@ -31,12 +31,11 @@ jobs:
       - name: Call Vertex AI Agent
         id: agent
         run: |
-          # CONFIGURATION
-          # Ensure this ID is the one from the 'Apps' dashboard, not the 'Data Store' dashboard.
+          # Use your exact App ID and Project ID
           APP_ID="1775696248774"
           PROJECT_ID="ai-code-reviewer-492601"
           
-          # This URL is the standard endpoint for Search Apps (Engines)
+          # We use the full discoveryengine endpoint. Ensure there are no spaces in this URL.
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $(gcloud auth print-access-token)" \
             -H "Content-Type: application/json" \
@@ -47,8 +46,9 @@ jobs:
           
           echo "DEBUG_LOG: $RESPONSE"
           
-          # Extract the summary text and save to file
+          # The Search API returns data in .reply.summary.summaryText
           echo "$RESPONSE" | jq -r '.reply.summary.summaryText // "AI Review: Code looks consistent with standards."' > ai_review.txt
+
 
       - name: Post Comment to PR
         uses: mshick/add-pr-comment@v2
