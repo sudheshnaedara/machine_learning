@@ -1,0 +1,56 @@
+name: Vertex AI PR Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # Required to post comments
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Get PR Diff
+        id: diff
+        run: |
+          # Get the changes between the PR branch and the main branch
+          git diff origin/${{ github.base_ref }} HEAD > pr_diff.txt
+          echo "DIFF_PATH=pr_diff.txt" >> $GITHUB_ENV
+
+      - name: Call Vertex AI Agent
+        id: agent
+        run: |
+          # REPLACE 'YOUR_AGENT_ID' BELOW with the ID from your browser URL
+          AGENT_ID="1775696248774"
+          PROJECT_ID="ai-code-reviewer-492601"
+          
+          # This sends the code diff to your RAG-powered agent
+          RESPONSE=$(curl -X POST \
+            -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+            -H "Content-Type: application/json" \
+            https://googleapis.com \
+            -d "{
+              \"query\": \"Review this Python code diff against our style guide and provide brief feedback: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\"
+            }")
+          
+          # Save the AI response to a file to handle multi-line text safely
+          echo "$RESPONSE" | jq -r '.answer.answerText // "The AI could not generate a review at this time."' > ai_review.txt
+
+      - name: Post Comment to PR
+        uses: mshick/add-pr-comment@v2
+        with:
+          message-path: ai_review.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
