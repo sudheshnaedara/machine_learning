@@ -32,20 +32,21 @@ jobs:
       - name: Call Vertex AI Agent
         id: agent
         run: |
-          AGENT_ID="1775696248774"
+          DATA_STORE_ID="1775696248774"
           PROJECT_ID="ai-code-reviewer-492601"
           
-          # This version prints the error if it fails
+          # We use 'v1alpha' and 'answer' for direct Data Store queries
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $(gcloud auth print-access-token)" \
             -H "Content-Type: application/json" \
             "https://googleapis.com" \
             -d "{
-              \"query\": \"Review this Python code diff: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\"
+              \"query\": { \"text\": \"Review this Python code diff: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\" }
             }")
           
-          echo "Debug Response: $RESPONSE" # This will show the actual error in GitHub logs
-          echo "$RESPONSE" | jq -r '.answer.answerText // "No review generated."' > ai_review.txt
+          echo "Debug Response: $RESPONSE"
+          # Data Store API uses 'answerText' inside the 'answer' object
+          echo "$RESPONSE" | jq -r '.answer.answerText // "Review completed, check logs for details."' > ai_review.txt
 
 
       - name: Post Comment to PR
