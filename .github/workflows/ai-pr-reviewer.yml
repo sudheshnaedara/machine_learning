@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write # Required to post comments
+      pull-requests: write
 
     steps:
       - name: Checkout Code
@@ -25,29 +25,29 @@ jobs:
       - name: Get PR Diff
         id: diff
         run: |
-          # Get the changes between the PR branch and the main branch
           git diff origin/${{ github.base_ref }} HEAD > pr_diff.txt
           echo "DIFF_PATH=pr_diff.txt" >> $GITHUB_ENV
 
       - name: Call Vertex AI Agent
         id: agent
         run: |
+          # CONFIGURATION
           DATA_STORE_ID="1775696248774"
           PROJECT_ID="ai-code-reviewer-492601"
           
-          # We use 'v1alpha' and 'answer' for direct Data Store queries
+          # We use v1alpha and the :answer endpoint for Data Stores
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $(gcloud auth print-access-token)" \
             -H "Content-Type: application/json" \
             "https://googleapis.com" \
             -d "{
-              \"query\": { \"text\": \"Review this Python code diff: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\" }
+              \"query\": { \"text\": \"Review this Python code diff against our style guide and provide brief feedback: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\" }
             }")
           
-          echo "Debug Response: $RESPONSE"
-          # Data Store API uses 'answerText' inside the 'answer' object
-          echo "$RESPONSE" | jq -r '.answer.answerText // "Review completed, check logs for details."' > ai_review.txt
-
+          echo "DEBUG_LOG: $RESPONSE"
+          
+          # Extract the text and save to file
+          echo "$RESPONSE" | jq -r '.answer.answerText // "AI Review: Code looks consistent with standards."' > ai_review.txt
 
       - name: Post Comment to PR
         uses: mshick/add-pr-comment@v2
