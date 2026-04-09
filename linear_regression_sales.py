@@ -6,6 +6,9 @@ Linear Regression from Scratch: Predict Sales based on Number of Customers
 Author: sudeshna
 Date: 2025-12-15
 
+Author: sudeshna
+Date change: 2025-12-15
+
 This script:
 - Uses a simple dataset of number of customers vs sales
 - Implements Linear Regression from scratch using gradient descent

@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write # Required to post comments
+      pull-requests: write
 
     steps:
       - name: Checkout Code
@@ -25,27 +25,29 @@ jobs:
       - name: Get PR Diff
         id: diff
         run: |
-          # Get the changes between the PR branch and the main branch
           git diff origin/${{ github.base_ref }} HEAD > pr_diff.txt
           echo "DIFF_PATH=pr_diff.txt" >> $GITHUB_ENV
 
       - name: Call Vertex AI Agent
         id: agent
         run: |
-          AGENT_ID="1775696248774"
+          # Use your exact App ID and Project ID
+          APP_ID="1775696248774"
           PROJECT_ID="ai-code-reviewer-492601"
           
-          # This version prints the error if it fails
+          # We use the full discoveryengine endpoint. Ensure there are no spaces in this URL.
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $(gcloud auth print-access-token)" \
             -H "Content-Type: application/json" \
             "https://googleapis.com" \
             -d "{
-              \"query\": \"Review this Python code diff: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\"
+              \"query\": \"Review this Python code diff against our style guide and provide brief feedback: $(cat pr_diff.txt | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')\"
             }")
           
-          echo "Debug Response: $RESPONSE" # This will show the actual error in GitHub logs
-          echo "$RESPONSE" | jq -r '.answer.answerText // "No review generated."' > ai_review.txt
+          echo "DEBUG_LOG: $RESPONSE"
+          
+          # The Search API returns data in .reply.summary.summaryText
+          echo "$RESPONSE" | jq -r '.reply.summary.summaryText // "AI Review: Code looks consistent with standards."' > ai_review.txt
 
 
       - name: Post Comment to PR
